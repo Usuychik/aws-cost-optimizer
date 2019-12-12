@@ -15,3 +15,4 @@ TAGS_BLACKLIST = json.loads(os.getenv("TAGS_BLACKLIST", "{}"))
 DYNAMODB_TABLE = os.environ["DYNAMODB_TABLE"]
 DYNAMODB_REGION = os.getenv("DYNAMODB_REGION", "us-east-1")
 DB_BACKUP_EXPIRATION = int(os.getenv("DYNAMODB_REGION", 14))
+RDS_WAIT_TIME = int(os.getenv("RDS_WAIT_TIME", 600))

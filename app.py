@@ -2,9 +2,11 @@
 from config import *
 import asg
 import ec2
+import rds
 from common import *
 from pprint import pprint, pformat
 import sys
+import time
 
 
 def clear_db(region, res_type, resources):
@@ -46,8 +48,38 @@ def stop():
         # clear non-existing resources
         clear_db(region, 'EC2', resources)
 
+    for region in aws_get_ec2_regions():
+        # RDS stop
+        resources = rds.find_rds(region)
+        for res in resources:
+            db_item = db_get_item(res['ID'], 'RDS')
+            if (not db_item) or db_item['State'] != ResourceState.Shutdown:
+                db_save_resource(res)
+            db_item = db_get_item(res['ID'], 'RDS')
+            resp = rds.instance_stop(region, db_item)
+            db_save_resource(resp)
+        # clear non-existing resources
+        clear_db(region, 'RDS', resources)
+
 
 def start():
+    rds_exists = False
+    for region in aws_get_ec2_regions():
+        logger.info("Start RDS for region: {}".format(region))
+        resources = rds.find_rds(region)
+        for res in resources:
+            db_item = db_get_item(res['ID'], 'RDS')
+            if db_item and db_item['State'] == ResourceState.Shutdown:
+                rds_exists = True
+                resp = rds.instance_start(region, db_item)
+                db_save_resource(resp)
+        # clear non-existing resources
+        clear_db(region, 'RDS', resources)
+
+    if rds_exists:
+        logger.info("RDS found. Sleep {} second before continue".format(RDS_WAIT_TIME))
+        time.sleep(RDS_WAIT_TIME)
+
     for region in aws_get_ec2_regions():
         logger.info("Start resources for region: {}".format(region))
 
@@ -57,6 +89,7 @@ def start():
             db_item = db_get_item(res['ID'], 'EC2')
             if db_item and db_item['State'] == ResourceState.Shutdown:
                 resp = ec2.instance_start(region, db_item)
+                db_save_resource(resp)
         # clear non-existing resources
         clear_db(region, 'EC2', resources)
 
@@ -66,13 +99,13 @@ def start():
             db_item = db_get_item(res['ID'], 'ASG')
             if db_item and db_item['State'] == ResourceState.Shutdown:
                 resp = asg.scale_up(region, db_item)
+                db_save_resource(resp)
         # clear non-existing resources
         clear_db(region, 'ASG', resources)
 
 
 def info():
     for region in aws_get_ec2_regions():
-
         res = asg.find_asg(region)
         temp_arr = []
         for resource in res:
@@ -84,6 +117,12 @@ def info():
         for resource in res:
             temp_arr.append({'ID': resource['ID'], 'Name': resource['Name']})
         logger.info("EC2 will be handled by app in region {}: \n{}".format(region, pformat(temp_arr)))
+
+        res = rds.find_rds(region)
+        temp_arr = []
+        for resource in res:
+            temp_arr.append({'ID': resource['ID'], 'Name': resource['Name']})
+        logger.info("RDS will be handled by app in region {}: \n{}".format(region, pformat(temp_arr)))
 
 
 if __name__ == '__main__':
