@@ -79,6 +79,7 @@ def stop():
             db_save_resource(resp)
         # clear non-existing resources
         clear_db(region, 'RDS', resources)
+    db_clear_backups()
 
 
 def start():

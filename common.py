@@ -84,6 +84,15 @@ def db_backup():
     )
 
 
+def db_clear_backups():
+    dynamodb = boto3.client('dynamodb', region_name=DYNAMODB_REGION)
+    backups = dynamodb.list_backups(TableName=DYNAMODB_TABLE, BackupType='USER')['BackupSummaries']
+    for backup in backups:
+        creation_delta = datetime.now() - backup['BackupCreationDateTime'].replace(tzinfo=None)
+        if creation_delta.days > DB_BACKUP_KEEP_DAYS:
+            logger.info("Delete backup NAME: {} ; ARN: {}".format(backup['BackupName'], backup['BackupArn']))
+            dynamodb.delete_backup(BackupArn=backup['BackupArn'])
+
 def db_save_resource(resource):
     dynamodb = boto3.resource('dynamodb', region_name=DYNAMODB_REGION).Table(DYNAMODB_TABLE)
     #Save dict params as string
@@ -141,3 +150,4 @@ def db_get_region_ids_by_type(region, resource_type):
 def db_delete_item(id, res_type):
     dynamodb = boto3.resource('dynamodb', region_name=DYNAMODB_REGION).Table(DYNAMODB_TABLE)
     dynamodb.delete_item(Key={'ID': id, 'Type': res_type})
+
