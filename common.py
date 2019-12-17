@@ -24,6 +24,16 @@ class DecimalEncoder(json.JSONEncoder):
         return super(DecimalEncoder, self).default(o)
 
 
+def clear_db(region, res_type, resources):
+    present_ids = []
+    if len(resources) > 0:
+        present_ids = [sub['ID'] for sub in resources]
+    db_ids = db_get_region_ids_by_type(region, res_type)
+    clear_ids = list(set(db_ids) - set(present_ids))
+    for id in clear_ids:
+        db_delete_item(id, res_type)
+
+
 def aws_get_ec2_regions():
     regions = []
     client = boto3.client('ec2', region_name=DYNAMODB_REGION)
@@ -72,6 +82,7 @@ def db_backup():
         TableName=DYNAMODB_TABLE,
         BackupName=datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     )
+
 
 def db_save_resource(resource):
     dynamodb = boto3.resource('dynamodb', region_name=DYNAMODB_REGION).Table(DYNAMODB_TABLE)

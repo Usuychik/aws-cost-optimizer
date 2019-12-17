@@ -3,27 +3,46 @@ from config import *
 import asg
 import ec2
 import rds
+import ecs
 from common import *
 from pprint import pprint, pformat
 import sys
 import time
+import logging
 
 
-def clear_db(region, res_type, resources):
-    present_ids = []
-    if len(resources) > 0:
-        present_ids = [sub['ID'] for sub in resources]
-    db_ids = db_get_region_ids_by_type(region, res_type)
-    clear_ids = list(set(db_ids) - set(present_ids))
-    for id in clear_ids:
-        db_delete_item(id, res_type)
+def print_info(resources, type, region):
+    temp_arr = []
+    for resource in resources:
+        temp_arr.append({'ID': resource['ID'], 'Name': resource['Name']})
+    if len(temp_arr) > 0:
+        logger.info("{} will be handled by app in region {}: \n{}".format(type,region, pformat(temp_arr)))
 
 
 def stop():
     db_backup()
+    ecs_exists = False
+    for region in aws_get_ec2_regions():
+        logger.info("Stop ECS for region: {}".format(region))
+        resources = ecs.find_ecs(region)
+        for res in resources:
+            db_item = db_get_item(res['ID'], 'ECS')
+            if (not db_item) or db_item['State'] != ResourceState.Shutdown:
+                db_save_resource(res)
+            db_item = db_get_item(res['ID'], 'ECS')
+            resp = ecs.scale_zero(region, db_item)
+            db_save_resource(resp)
+            ecs_exists = True
+        # clear non-existing resources
+        clear_db(region, 'ECS', resources)
+
+    if ecs_exists:
+        logger.info("ECS found. Sleep {} seconds before continue".format(ECS_WAIT_TIME))
+        time.sleep(ECS_WAIT_TIME)
+
     for region in aws_get_ec2_regions():
         logger.info("Stop resources for region: {}".format(region))
-        
+
         # ASG scale to 0
         resources = asg.find_asg(region)
         for res in resources:
@@ -77,7 +96,7 @@ def start():
         clear_db(region, 'RDS', resources)
 
     if rds_exists:
-        logger.info("RDS found. Sleep {} second before continue".format(RDS_WAIT_TIME))
+        logger.info("RDS found. Sleep {} seconds before continue".format(RDS_WAIT_TIME))
         time.sleep(RDS_WAIT_TIME)
 
     for region in aws_get_ec2_regions():
@@ -103,26 +122,30 @@ def start():
         # clear non-existing resources
         clear_db(region, 'ASG', resources)
 
+        # ECS scale up
+        resources = ecs.find_ecs(region)
+        for res in resources:
+            db_item = db_get_item(res['ID'], 'ECS')
+            if db_item and db_item['State'] == ResourceState.Shutdown:
+                resp = ecs.scale_up(region, db_item)
+                db_save_resource(resp)
+        # clear non-existing resources
+        clear_db(region, 'ECS', resources)
+
 
 def info():
     for region in aws_get_ec2_regions():
+        res = ecs.find_ecs(region)
+        print_info(res, 'ECS', region)
+
         res = asg.find_asg(region)
-        temp_arr = []
-        for resource in res:
-            temp_arr.append({'ID': resource['ID'], 'Name': resource['Name']})
-        logger.info("ASG will be handled by app in region {}: \n{}".format(region,pformat(temp_arr)))
+        print_info(res, 'ASG', region)
 
         res = ec2.find_ec2(region)
-        temp_arr = []
-        for resource in res:
-            temp_arr.append({'ID': resource['ID'], 'Name': resource['Name']})
-        logger.info("EC2 will be handled by app in region {}: \n{}".format(region, pformat(temp_arr)))
+        print_info(res, 'EC2', region)
 
         res = rds.find_rds(region)
-        temp_arr = []
-        for resource in res:
-            temp_arr.append({'ID': resource['ID'], 'Name': resource['Name']})
-        logger.info("RDS will be handled by app in region {}: \n{}".format(region, pformat(temp_arr)))
+        print_info(res, 'RDS', region)
 
 
 if __name__ == '__main__':
@@ -140,10 +163,3 @@ if __name__ == '__main__':
         stop()
     else:
         print("Usage: app.py <start/stop/info>")
-#         pprint(db_get_region_ids_by_type('us-east-1', 'ASG'))
-#    res = asg.find_asg('us-east-1')
-#    asg.db_save(res)
-#    asg.zero_scale('us-east-1', 'cww-k8s-worker-dev-spot-nat')
-#    asg.scale_up('us-east-1', 'arn:aws:autoscaling:us-east-1:338870042854:autoScalingGroup:2d530adb-61c6-41bd-8eba-82e2472db106:autoScalingGroupName/cww-k8s-worker-dev-spot-nat')
-#    pprint(ec2.find_ec2('us-east-1'))
-
