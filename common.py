@@ -93,6 +93,7 @@ def db_clear_backups():
             logger.info("Delete backup NAME: {} ; ARN: {}".format(backup['BackupName'], backup['BackupArn']))
             dynamodb.delete_backup(BackupArn=backup['BackupArn'])
 
+
 def db_save_resource(resource):
     dynamodb = boto3.resource('dynamodb', region_name=DYNAMODB_REGION).Table(DYNAMODB_TABLE)
     #Save dict params as string
@@ -115,9 +116,9 @@ def db_get_item(id, resource_type):
     return res
 
 
-def db_get_resources_by_type(resource_type):
+def db_get_resources_by_type(resource_type, region):
     dynamodb = boto3.resource('dynamodb', region_name=DYNAMODB_REGION).Table(DYNAMODB_TABLE)
-    response = dynamodb.scan(FilterExpression=Attr('Type').eq(resource_type))
+    response = dynamodb.scan(FilterExpression=Attr('Type').eq(resource_type) & Attr('Region').eq(region))
     items = []
     if 'Items' in response:
         for item in response['Items']:
@@ -150,4 +151,3 @@ def db_get_region_ids_by_type(region, resource_type):
 def db_delete_item(id, res_type):
     dynamodb = boto3.resource('dynamodb', region_name=DYNAMODB_REGION).Table(DYNAMODB_TABLE)
     dynamodb.delete_item(Key={'ID': id, 'Type': res_type})
-

@@ -33,7 +33,8 @@ def find_ecs(region: str):
                 res_services.append({
                     'ServiceArn': srv['serviceArn'],
                     'ServiceName': srv['serviceName'],
-                    'DesiredCount': srv['desiredCount']
+                    'DesiredCount': srv['desiredCount'],
+                    'taskDefinition': srv['taskDefinition'].split("/")[1]
                 })
 
             res['Params'] = {

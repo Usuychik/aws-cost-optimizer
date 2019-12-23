@@ -4,6 +4,7 @@ import asg
 import ec2
 import rds
 import ecs
+import volumes
 from common import *
 from pprint import pprint, pformat
 import sys
@@ -39,6 +40,12 @@ def stop():
     if ecs_exists:
         logger.info("ECS found. Sleep {} seconds before continue".format(ECS_WAIT_TIME))
         time.sleep(ECS_WAIT_TIME)
+
+    for region in aws_get_ec2_regions():
+        logger.info("Remove volumes for region: {}".format(region))
+        vlms = volumes.find_volumes(region)
+        for vlm in vlms:
+            volumes.delete_volume(vlm, region)
 
     for region in aws_get_ec2_regions():
         logger.info("Stop resources for region: {}".format(region))
@@ -147,6 +154,9 @@ def info():
 
         res = rds.find_rds(region)
         print_info(res, 'RDS', region)
+
+        vlms = volumes.find_volumes(region)
+        print('Volumes to remove:\n{}'.format(pformat(vlms)))
 
 
 if __name__ == '__main__':
