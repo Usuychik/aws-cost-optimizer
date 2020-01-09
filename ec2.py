@@ -10,9 +10,12 @@ def find_ec2(region: str):
         tags = {}
         name = ""
         asg_instance = False
+        exclude = False
         for tag in instance.tags:
             if tag['Key'] == "aws:autoscaling:groupName":
                 asg_instance = True
+            if tag['Key'] in TAGS_EXCLUDE:
+                exclude = True
             if tag['Key'] in TAGS_OWN:
                 if tag['Value'] in TAGS_OWN[tag['Key']]:
                     tags[tag['Key']] = tag['Value']
@@ -30,7 +33,10 @@ def find_ec2(region: str):
                 'State': instance.state['Name'],
                 'StateCode': instance.state['Code']
             }
-            result.append(res)
+            if exclude:
+                print("Excluded recourse: \n{}".format(pformat(res)))
+            else:
+                result.append(res)
     return result
 
 

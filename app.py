@@ -13,6 +13,9 @@ import logging
 
 
 def print_info(resources, type, region):
+    if type == 'EBS':
+        if len(resources) > 0:
+            logger.info("{} will be handled by app in region {}: \n{}".format(type, region, pformat(resources)))
     temp_arr = []
     for resource in resources:
         temp_arr.append({'ID': resource['ID'], 'Name': resource['Name']})
@@ -155,8 +158,8 @@ def info():
         res = rds.find_rds(region)
         print_info(res, 'RDS', region)
 
-        vlms = volumes.find_volumes(region)
-        print('Volumes to remove:\n{}'.format(pformat(vlms)))
+        res = volumes.find_volumes(region)
+        print_info(res, 'EBS', region)
 
 
 if __name__ == '__main__':

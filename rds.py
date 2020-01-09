@@ -9,8 +9,11 @@ def find_rds(region: str):
     for instance in response['DBInstances']:
         res = {}
         tags = {}
+        exclude = False
         rds_tags = client.list_tags_for_resource(ResourceName=instance['DBInstanceArn'])['TagList']
         for tag in rds_tags:
+            if tag['Key'] in TAGS_EXCLUDE:
+                exclude = True
             if tag['Key'] in TAGS_OWN:
                 if tag['Value'] in TAGS_OWN[tag['Key']]:
                     tags[tag['Key']] = tag['Value']
@@ -23,7 +26,10 @@ def find_rds(region: str):
             res['Params'] = {
                 'Status': instance['DBInstanceStatus']
             }
-            result.append(res)
+            if exclude:
+                print("Excluded recourse: \n{}".format(pformat(res)))
+            else:
+                result.append(res)
     return result
 
 

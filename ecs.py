@@ -10,7 +10,10 @@ def find_ecs(region: str):
         cluster = client.describe_clusters(clusters=[cluster_arn],include=['TAGS'])['clusters'][0]
         res = {}
         tags = {}
+        exclude = False
         for tag in cluster['tags']:
+            if tag['key'] in TAGS_EXCLUDE:
+                exclude = True
             if tag['key'] in TAGS_OWN:
                 if tag['value'] in TAGS_OWN[tag['key']]:
                     tags[tag['key']] = tag['value']
@@ -41,7 +44,10 @@ def find_ecs(region: str):
                 'Status': cluster['status'],
                 'Services': res_services
             }
-            result.append(res)
+            if exclude:
+                print("Excluded recourse: \n{}".format(pformat(res)))
+            else:
+                result.append(res)
     return result
 
 

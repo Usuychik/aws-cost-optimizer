@@ -11,7 +11,7 @@ logger.setLevel(LOG_LEVEL)
 # TAGS_OWN json_like list of tags
 # TAGS_OWN={"Product":["CWW"],"Environment":["Development","DEV"]}
 TAGS_OWN = json.loads(os.environ["TAGS_OWN"])
-TAGS_BLACKLIST = json.loads(os.getenv("TAGS_BLACKLIST", "{}"))
+TAGS_EXCLUDE = json.loads(os.getenv("TAGS_EXCLUDE", '{"optimizer_exclude":""}'))
 DYNAMODB_TABLE = os.environ["DYNAMODB_TABLE"]
 DYNAMODB_REGION = os.getenv("DYNAMODB_REGION", "us-east-1")
 DB_BACKUP_KEEP_DAYS = int(os.getenv("DB_BACKUP_KEEP_DAYS", 14))

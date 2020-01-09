@@ -10,7 +10,10 @@ def find_asg(region: str):
     for asg in asgs:
         res = {}
         tags = {}
+        exclude = False
         for tag in asg['Tags']:
+            if tag['Key'] in TAGS_EXCLUDE:
+                exclude = True
             if tag['Key'] in TAGS_OWN:
                 if tag['Value'] in TAGS_OWN[tag['Key']]:
                     tags[tag['Key']] = tag['Value']
@@ -25,7 +28,10 @@ def find_asg(region: str):
                 'MaxSize': asg['MaxSize'],
                 'MinSize': asg['MinSize']
             }
-            result.append(res)
+            if exclude:
+                print("Excluded recourse: \n{}".format(pformat(res)))
+            else:
+                result.append(res)
     return result
 
 

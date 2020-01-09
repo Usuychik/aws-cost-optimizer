@@ -15,12 +15,18 @@ def find_volumes(region: str):
     for volume in volumes_dict['Volumes']:
         if volume['State'] != 'available':
             continue
+        exclude = False
         if 'Tags' in volume:
             for tag in volume['Tags']:
+                if tag['Key'] in TAGS_EXCLUDE:
+                    exclude = True
                 if tag['Key'] == 'Name':
                     for task in tasks_name:
                         if task in tag['Value']:
-                            result.append(volume['VolumeId'])
+                            if exclude:
+                                print("Excluded volume: {}".format(volume['VolumeId']))
+                            else:
+                                result.append(volume['VolumeId'])
 
     return result
 
