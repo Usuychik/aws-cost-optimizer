@@ -11,16 +11,17 @@ def find_ec2(region: str):
         name = ""
         asg_instance = False
         exclude = False
-        for tag in instance.tags:
-            if tag['Key'] == "aws:autoscaling:groupName":
-                asg_instance = True
-            if tag['Key'] in TAGS_EXCLUDE:
-                exclude = True
-            if tag['Key'] in TAGS_OWN:
-                if tag['Value'] in TAGS_OWN[tag['Key']]:
-                    tags[tag['Key']] = tag['Value']
-            if tag['Key'] == 'Name':
-                name = tag['Value']
+        if instance.tags:
+            for tag in instance.tags:
+                if tag['Key'] == "aws:autoscaling:groupName":
+                    asg_instance = True
+                if tag['Key'] in TAGS_EXCLUDE:
+                    exclude = True
+                if tag['Key'] in TAGS_OWN:
+                    if tag['Value'] in TAGS_OWN[tag['Key']]:
+                        tags[tag['Key']] = tag['Value']
+                if tag['Key'] == 'Name':
+                    name = tag['Value']
         if asg_instance:
             continue
         if set(tags.keys()) == set(TAGS_OWN.keys()):
