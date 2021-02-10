@@ -18,9 +18,12 @@ def print_info(resources, type, region):
             logger.info("{} will be handled by app in region {}: \n{}".format(type, region, pformat(resources)))
     temp_arr = []
     for resource in resources:
-        temp_arr.append({'ID': resource['ID'], 'Name': resource['Name']})
+        if 'Name' in resource:
+            temp_arr.append({'ID': resource['ID'], 'Name': resource['Name']})
+        else:
+            temp_arr.append({'ID': resource['ID'], 'Name': ''})
     if len(temp_arr) > 0:
-        logger.info("{} will be handled by app in region {}: \n{}".format(type,region, pformat(temp_arr)))
+        logger.info("{} will be handled by app in region {}: \n{}".format(type, region, pformat(temp_arr)))
 
 
 def stop():
